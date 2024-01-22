@@ -12,9 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -40,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 data class ShoppingItem(
@@ -72,11 +77,25 @@ fun Test(){
               .padding(16.dp)
       ){
           items(itemList){
-              ShoppingListItem(
-                  item = it,
-                  onEditClick = { /*TODO*/ },
-                  onDeleteClick = {/*TODO*/}
-              )
+              item ->
+              if(item.isEditing){
+                  ShoppingItemEditor(item = item, onEditComplete = {
+                      editedName, editedQuantity ->
+                      itemList = itemList.map { it.copy(isEditing = false) }
+                      val editedItem = itemList.find { it.id == item.id }
+                      editedItem?.let {
+                          it.name = editedName
+                          it.quantity = editedQuantity
+                      }
+                  })
+              }
+              else{
+                  ShoppingListItem(item = item, onEditClick = {
+                      itemList = itemList.map { it.copy(isEditing = it.id==item.id) }
+                  }, onDeleteClick = {
+                      itemList = itemList - item
+                  })
+              }
           }
       }
   }
@@ -162,10 +181,13 @@ fun ShoppingListItem(
             .fillMaxWidth()
             .clip(RoundedCornerShape(20))
             .background(color = MaterialTheme.colorScheme.secondaryContainer),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ){
-        Text(text = item.name, modifier = Modifier.padding(8.dp))
-        Text(text = "Qty: ${item.quantity}", Modifier.padding(8.dp))
+        Row(modifier = Modifier.padding(8.dp)){
+            Text(text = item.name, modifier = Modifier.padding(8.dp))
+            Text(text = "Qty: ${item.quantity}", Modifier.padding(8.dp))
+        }
         Row(modifier = Modifier.padding(8.dp)){
             IconButton(onClick = onEditClick) {
                 Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit" )
@@ -184,4 +206,49 @@ fun ShoppingItemEditor(item: ShoppingItem, onEditComplete: (String, Int) -> Unit
     var editedName by remember{ mutableStateOf(item.name) }
     var editedQuantity by remember { mutableStateOf(item.quantity.toString()) }
     var isEditing by remember{ mutableStateOf(item.isEditing) }
+
+    Row(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+            .height(166.dp)
+            .clip(RoundedCornerShape(10))
+            .background(color = MaterialTheme.colorScheme.secondaryContainer),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+        ){
+        Column {
+            OutlinedTextField(
+                value = editedName,
+                onValueChange = {
+                editedName = it
+            },
+                singleLine = true,
+                modifier = Modifier
+                    .width(230.dp)
+                    .padding(start = 16.dp, top = 8.dp, end = 8.dp, bottom = 8.dp)
+            )
+            OutlinedTextField(
+                value = editedQuantity,
+                onValueChange = {
+                    editedQuantity = it
+                },
+                singleLine = true,
+                modifier = Modifier
+                    .width(230.dp)
+                    .padding(start = 16.dp, top = 8.dp, end = 8.dp, bottom = 8.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(15.dp))
+        Button(onClick = {
+            isEditing = false;
+            onEditComplete(editedName, editedQuantity.toIntOrNull() ?: 1)
+        },
+            modifier = Modifier
+                .padding(start = 8.dp, top = 8.dp, end = 24.dp, bottom = 8.dp)
+        ) {
+            Text(text = "Save")
+        }
+    }
 }
+
